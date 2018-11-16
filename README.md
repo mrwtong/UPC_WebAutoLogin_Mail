@@ -1,4 +1,4 @@
-# AutoLogin_Mail for UPC Authentication System
+# AutoLogin_Mail for UPC Network Authentication System
 此脚本针对UPC校园网认证系统！   
 功能：自动登陆+自动向指定邮箱发送IP变更消息(方便无人值守远程连接) 
 ## 1、使用方法   
