@@ -13,7 +13,7 @@ refUrl=''
 loginUrl='http://lan.upc.edu.cn/eportal/InterFace.do?method=login'
 ip=''
 senderMail='mrwtong1@163.com'
-senderPwd='199559WANG'
+senderPwd='88888888'
 senderServer='smtp.163.com'
 senderPort=25
 mailSubject='E2101工作站IP地址变更的通知'
