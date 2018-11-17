@@ -1,4 +1,5 @@
 #coding=utf-8
+import os
 import socket
 import requests
 import urllib
@@ -12,7 +13,7 @@ refUrl=''
 loginUrl='http://lan.upc.edu.cn/eportal/InterFace.do?method=login'
 ip=''
 senderMail='mrwtong1@163.com'
-senderPwd='88888888'
+senderPwd='199559WANG'
 senderServer='smtp.163.com'
 senderPort=25
 mailSubject='E2101工作站IP地址变更的通知'
@@ -101,13 +102,13 @@ mailMsgTemp="""
 	<span style="font-size:14px;">---------------------------------------------------------</span> 
 </p>
 <p>
-	<span style="font-size:10px;"><span style="font-size:10px;">^_^</span>Don·t reply me！I‘am just a stupid Python script working in a router.^_^</span> 
+	<span style="font-size:10px;"><span style="font-size:10px;">^_^</span>Don·t reply me！I am just a stupid Python script working in a router.^_^</span> 
 </p>
 <p>
-	<span style="font-size:10px;"><span style="font-size:10px;">^_^</span>if you want me to work better, please commit your code for&nbsp;<a href="https://github.com/" target="_blank">me</a>.^_^</span> 
+	<span style="font-size:10px;"><span style="font-size:10px;">^_^</span>If you want me to work better, please commit your code for&nbsp;<a href="https://github.com/mrwtong/AutoLogin_Mail"target="_blank">me</a>.^_^</span> 
 </p>
 <p>
-	<span style="font-size:16px;"><span style="font-size:10px;">https://github.com/</span><span style="font-size:10px;"></span><br />
+	<span style="font-size:16px;"><span style="font-size:10px;">https://github.com/mrwtong/AutoLogin_Mail</span><span style="font-size:10px;"></span><br />
 </span> 
 </p>
 <p>
@@ -175,7 +176,7 @@ def SendLoginRequest(userId,password,service):
     postData['service']=service
     if refUrl!='':
         postData['queryString']=urllib.quote(refUrl.split('?')[1])
-    postHeader['postHeader']=refUrl
+    postHeader['Referer']=refUrl
     postHeader['Content-Length']=str(len(urllib.urlencode(postData)))
 #---send post---
     post=requests.post(loginUrl,headers=postHeader,data=postData)
@@ -200,7 +201,7 @@ def GetIP():
         return True
 #--------------Get IP Logs-------------------
 def GetLogIP():
-    with open('ipList','r') as ipfile:
+    with open(os.path.split(os.path.realpath(__file__))[0]+'/ipList','r') as ipfile:
         ipLogs=ipfile.readlines()
         if len(ipLogs)!=0:
             return ipLogs[-1]
@@ -208,14 +209,14 @@ def GetLogIP():
             return '0.0.0.0'
 #-----------Append IP--------------------
 def AppendIP(ip):
-    with open('ipList','a') as ipfile:
+    with open(os.path.split(os.path.realpath(__file__))[0]+'/ipList','a') as ipfile:
          if ipfile.write('\n'+ip):
              return True
          else:
              return False 
 #---------------Login---------------------------
 def Login():
-    with open('accountList','r') as accountfile:
+    with open(os.path.split(os.path.realpath(__file__))[0]+'/accountList','r') as accountfile:
          accountlines=accountfile.readlines()
     if len(accountlines)!=0:
         for i in range(len(accountlines)):
@@ -227,7 +228,7 @@ def Login():
         return False
 #---------------Send Mail to all users-----------
 def SendMailtoAll():
-    with open('userList','r') as userfile:
+    with open(os.path.split(os.path.realpath(__file__))[0]+'/userList','r') as userfile:
         userlines=userfile.readlines()
         if len(userlines)!=0:
             recipientList=[]
@@ -250,7 +251,7 @@ if CheckLoginStatus(url):
     #Status is Login
     if ip==GetLogIP():
        #---IP is not changed
-        print localtime+' Login,IP Unchanged'
+       #print localtime+' Login,IP Unchanged'
         exit('Log OK, IP OK')
     else:
         AppendIP(ip)
