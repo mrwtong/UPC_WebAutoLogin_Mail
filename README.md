@@ -1,4 +1,5 @@
 # AutoLogin_Mail for UPC Network Authentication System
+# 中国石油大学(华东)校园网认证系统自助登陆以及IP地址自动报告
 此脚本针对UPC校园网认证系统！   
 功能：自动登陆+自动向指定邮箱发送IP变更消息(方便无人值守远程连接) 
 ## 1、使用方法   
