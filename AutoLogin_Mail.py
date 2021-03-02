@@ -1,321 +1,274 @@
-#coding=utf-8
-#---------------------------------------------------------------------------
+# coding=utf-8
+# Author: Tong
+# Python version: 3.9
+# ---------------------------------------------------------------------------
 '''
 工作流程：
-if 检查网络登陆状态
-     if 检查IP是否改变
-            状态正常退出
-     else
-            向所有用户发送IP变更消息
-else  
-     if 依次使用accountList下的账号登陆网络
-         if 检查IP是否改变
-             状态正常退出
-               输出工作记录
-         else
-              向所有用户发送IP变更消息
-               输出工作记录
-      else 无法登陆输出错误信息
+if 网络未登录
+    依次尝试使用accountList下的账号登陆网络
+
+if IP地址变更
+    保存新的IP地址
+    向用所有户发送新IP地址
+exit(0)
 '''
-#---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 import os
 import socket
-import requests
-import urllib
+import urllib.request
 import smtplib
 import time
 from email.mime.text import MIMEText
 from email.header import Header
-#---------------------------Global-Variable--------------------------------------------
-url='http://lan.upc.edu.cn/'
-refUrl=''
-loginUrl='http://lan.upc.edu.cn/eportal/InterFace.do?method=login'
-ip=''
-senderMail='mrwtong1@163.com'
-senderPwd='88888888'
-senderServer='smtp.163.com'
-senderPort=25
-mailSubject='E2101工作站IP地址变更的通知'
-reqHeader={'Accept':'text/html, application/xhtml+xml, image/jxr, */*',
-	'Accept-Encoding':'gzip, deflate',
-	'Accept-Language':'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-	'Connection':'Keep-Alive',
-	'Host':'lan.upc.edu.cn',
-	'User-Agent':'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Mobile Safari/537.36'
-}
-postHeader={'Accept':'*/*',
-	'Accept-Encoding':'gzip, deflate',
-	'Accept-Language':'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
-	'Cache-Control':'no-cache',
-	'Connection':'Keep-Alive',
-	'Content-Length':'339',
-	'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8',
-	'Host':'lan.upc.edu.cn',
-	'Origin':'http://lan.upc.edu.cn',
-	'Pragma':'no-cache',
-	'Referer':'',
-	'User-Agent':'Mozilla/5.0 (Linux; Android 6.0; Nexus 5 Build/MRA58N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Mobile Safari/537.36'
-}
-postData={'userId':'',
-	'password':'',
-	'service':'',
-	'queryString':'',
-	'operatorPwd':'',
-	'operatorUserId':'',
-	'validcode':'',
-	'passwordEncrypt':'false'
-}
-mailMsgTemp="""
-<html>
-  <head></head>
-  <body>
-<p>
-	<strong><span style="font-size:18px;">{name} 你好：</span></strong> 
-</p>
-<p>
-	<span style="font-size:18px;"><span style="font-size:16px;"><span style="font-size:14px;">工作站</span></span><span style="font-size:14px;"></span><span style="font-size:14px;">连接地址已变更，请使用新地址连接</span><br />
-</span> 
-</p>
-<p>
-	<span style="font-size:16px;">-------------------------------------------------</span> 
-</p>
-<p>
-	<span style="font-size:14px;"><strong>一号工作站：</strong></span> 
-</p>
-<p>
-	<span style="font-size:14px;">远程桌面地址：{ip}</span><span style="font-size:14px;">:22100</span> 
-</p>
-<p>
-	<span style="font-size:14px;">文件服务器地址：ftp://<span style="font-size:14px;"><span style="font-size:14px;">{ip}</span>:2021</span></span> 
-</p>
-<p>
-	<span style="font-size:16px;"><br />
-</span> 
-</p>
-<p>
-	<span style="font-size:16px;"><strong><span style="font-size:14px;">二号工作站</span></strong><span style="font-size:14px;">：</span></span> 
-</p>
-<p>
-	<span style="font-size:14px;">远程桌面地址：<span style="font-size:14px;"><span style="font-size:14px;">{ip}</span>:22101</span></span> 
-</p>
-<p>
-	<span style="font-size:14px;">文件服务器地址：<span style="font-size:14px;">ftp://</span><span style="font-size:14px;"><span style="font-size:14px;">{ip}</span></span></span><span style="font-size:14px;">:2121</span>
-</p>
-<p>
-	<span style="font-size:16px;"><br />
-</span> 
-</p>
-<p>
-	<span style="font-size:14px;"><strong>三号工作站：</strong></span> 
-</p>
-<p>
-	<span style="font-size:16px;"> </span> 
-</p>
-<p>
-	<span style="font-size:14px;">远程桌面地址：<span style="font-size:14px;"><span style="font-size:14px;">{ip}</span>:22102</span></span> 
-</p>
-<p>
-	<span style="font-size:14px;">文件服务器地址：<span style="font-size:14px;">ftp://</span><span style="font-size:14px;"><span style="font-size:14px;">{ip}</span>:2221</span></span> 
-</p>
-<p>
-	<span style="font-size:14px;">---------------------------------------------------------</span> 
-</p>
-<p>
-	<span style="font-size:10px;"><span style="font-size:10px;">^_^</span>Don·t reply me！I am just a stupid Python script working in a router.^_^</span> 
-</p>
-<p>
-	<span style="font-size:10px;"><span style="font-size:10px;">^_^</span>If you want me to work better, please commit your code for&nbsp;<a href="https://github.com/mrwtong/AutoLogin_Mail"target="_blank">me</a>.^_^</span> 
-</p>
-<p>
-	<span style="font-size:16px;"><span style="font-size:10px;">https://github.com/mrwtong/AutoLogin_Mail</span><span style="font-size:10px;"></span><br />
-</span> 
-</p>
-<p>
-	<span style="font-size:16px;"><span style="font-size:10px;">http://www.sunpetro.cn/forum.php/</span><span style="font-size:10px;"></span><br />
-</span> 
-</p>
-<p>
-	<span style="font-size:16px;"></span> 
-</p>
-<p>
-	<span style="font-size:16px;"></span> 
-</p> 
-  </body>
-</html>
-"""#%format(name=userName,ip=ip)
-#-----------Recipient Class Define-----------------
+
+# ---------------------------Global-Variable--------------------------------------------
+## e-mail account
+
+sendMail = True # 若不需要自动发送邮件请修改此项为False
+senderMail = 'mrwtong1@163.com' #此处填写邮箱地址
+senderPwd = '' #此处填写邮箱密码
+senderServer = 'smtp.163.com' #此处填写邮箱服务器号
+senderPort = 25
+## request data
+url = 'http://lan.upc.edu.cn'
+refUrl = ''
+loginUrl = 'http://lan.upc.edu.cn/eportal/InterFace.do?method=login'
+hostIP = ''
+reqHeader = {'Accept': 'text/html, application/xhtml+xml, image/jxr, */*',
+             'Accept-Encoding': 'gzip, deflate',
+             'Accept-Language': 'zh-CN,zh;q=0.9,en;q=0.8',
+             'Connection': 'Keep-Alive',
+             'Host': 'lan.upc.edu.cn',
+             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36'
+             }
+postHeader = {'Accept': '*/*',
+              'Accept-Encoding': 'gzip, deflate',
+              'Accept-Language': 'zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+              'Cache-Control': 'no-cache',
+              'Connection': 'Keep-Alive',
+              'Content-Length': '339',
+              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+              'Host': 'lan.upc.edu.cn',
+              'Origin': 'http://lan.upc.edu.cn',
+              'Pragma': 'no-cache',
+              'Referer': '',
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.190 Safari/537.36'
+              }
+postData = {'userId': '',
+            'password': '',
+            'service': '',
+            'queryString': '',
+            'operatorPwd': '',
+            'operatorUserId': '',
+            'validcode': '',
+            'passwordEncrypt': 'false'
+            }
+
+## email data
+mailSubject = '网络IP地址变更的通知'
+mailMsgTemp = """{name} 你好：
+--------------------------------------------------
+工作站连接地址已变更，请使用新地址连接:
+    RDP：{ip}:13389
+    SSH:{ip}:12222
+--------------------------------------------------
+This is an automated e-mail by https://github.com/mrwtong/AutoLogin_Mail
+"""  # %format(name=userName,ip=ip)
+
+
+# -----------Recipient Class Define-----------------
 class recipient:
-    def __init__(self,name,mail):
-        self.userName=name
-        self.userMail=[mail]
+    def __init__(self, name, mail):
+        self.userName = name
+        self.userMail = [mail]
+
     def Send(self):
-        global ip
+        global hostIP
         global senderMail
         global senderPwd
         global senderServer
         global senderPort
         global mailMsgTemp
         global mailSubject
-        mail=MIMEText(mailMsgTemp.format(name=self.userName,ip=ip),'html','utf-8')
-        mail['from']=senderMail
-        mail['to']=self.userMail[0]
-        mail['subject']=Header(mailSubject,'utf-8')
-        #--try-send-mail--
-        try:
-            smtpObj=smtplib.SMTP(senderServer,senderPort)
-            #smtpObj.helo()
-            #smtpObj.starttls()
-            smtpObj.login(senderMail,senderPwd)
-            smtpObj.sendmail(senderMail,self.userMail[0],mail.as_string())
-            smtpObj.quit()
-            return True
-        except smtplib.SMTPException as e:
-            print "Error：无法发送邮件",e
-            return False
-#---------Check Login Status-----------------------
+        mail = MIMEText(mailMsgTemp.format(name=self.userName, ip=hostIP), 'plain', 'utf-8')
+        mail['from'] = senderMail
+        mail['to'] = self.userMail[0]
+        mail['subject'] = Header(mailSubject, 'utf-8')
+        # --try-send-mail--
+        smtpObj = smtplib.SMTP(senderServer, senderPort)
+        # smtpObj.helo()
+        # smtpObj.starttls()
+        smtpObj.login(senderMail, senderPwd)
+        smtpObj.sendmail(senderMail, self.userMail[0], mail.as_string())
+        smtpObj.quit()
+        return
+
+
+# ---------Check Login Status-----------------------
 def CheckLoginStatus(url):
     global reqHeader
-    req=requests.get(url,headers=reqHeader)
-    if 'success' in req.url:
-        return True
+    req = urllib.request.Request(url, headers=reqHeader)
+    try:
+        response = urllib.request.urlopen(req, timeout = 4)
+    except Exception:
+        localTime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print(localTime + ' :Can not open ' + url)
+        exit(0)
     else:
-        global refUrl
-        refUrl=req.url
-        return False
-#-------------Send Login Request----------------------
-def SendLoginRequest(userId,password,service):
+        if 'success' in response.url:
+            return True
+        else:
+            global refUrl
+            refUrl = response.url
+            return False
+
+
+# -------------Send Login Request----------------------
+def SendLoginRequest(userId, password, service):
     global postHeader
     global postData
     global loginUrl
     global refUrl
     global url
-#---extract data for http POST---
-    postData['userId']=userId
-    postData['password']=password
-    postData['service']=service
-    if refUrl!='':
-        postData['queryString']=urllib.quote(refUrl.split('?')[1])
-    postHeader['Referer']=refUrl
-    postHeader['Content-Length']=str(len(urllib.urlencode(postData)))
-#---send post---
-    post=requests.post(loginUrl,headers=postHeader,data=postData)
-#---check Status---
-    if CheckLoginStatus(url):
-        return True
-    else:
-        return False
-#---------------Get Host IP-------------
-def GetIP():
+    # ---extract data for http POST---
+    postData['userId'] = userId
+    postData['password'] = password
+    postData['service'] = service
+    postData['queryString'] = urllib.parse.quote(refUrl.split('?')[1])
+    postHeader['Referer'] = refUrl
+    postDataByte = urllib.parse.urlencode(postData).encode()
+    postHeader['Content-Length'] = len(postDataByte)
+    req = urllib.request.Request(loginUrl, headers=postHeader, data=postDataByte,  method= 'POST')
+    # ---send post---
     try:
-        global ip
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(('8.8.8.8', 80))
-        ip = s.getsockname()[0]
-        
-    finally:
-        s.close()
-    if ip=='':
-        return False
+        response = urllib.request.urlopen(req, timeout=4)
+        if response.length is None:
+            raise Exception('No response after POST')
+    except Exception:
+        localTime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print(localTime + ' :Can not post login request to ' + loginUrl)
+        exit(0)
     else:
-        return True
-#--------------Get IP Logs-------------------
-def GetLogIP():
-    with open(os.path.split(os.path.realpath(__file__))[0]+'/ipList','r') as ipfile:
-        ipLogs=ipfile.readlines()
-        if len(ipLogs)!=0:
-            return ipLogs[-1]
-        else:
-            return '0.0.0.0'
-#-----------Append IP--------------------
-def AppendIP(ip):
-    with open(os.path.split(os.path.realpath(__file__))[0]+'/ipList','a') as ipfile:
-         if ipfile.write('\n'+ip):
-             return True
-         else:
-             return False 
-#---------------Login---------------------------
-def Login():
-    with open(os.path.split(os.path.realpath(__file__))[0]+'/accountList','r') as accountfile:
-         accountlines=accountfile.readlines()
-    if len(accountlines)!=0:
-        for i in range(len(accountlines)):
-            if SendLoginRequest(accountlines[i].split()[0],accountlines[i].split()[1],accountlines[i].split()[2]):
-                return True
-            if i==len(accountlines)-1:#i=last accout but cant login
-                return False
-    else:
-        return False
-#---------------Send Mail to all users-----------
-def SendMailtoAll():
-    with open(os.path.split(os.path.realpath(__file__))[0]+'/userList','r') as userfile:
-        userlines=userfile.readlines()
-        if len(userlines)!=0:
-            recipientList=[]
-            sendNum=0
-            for i in range(len(userlines)):
-                recipientList.append(recipient(userlines[i].split()[0],userlines[i].split()[1]))
-                if recipientList[i].Send():
-                    sendNum=sendNum+1
-            if sendNum==len(recipientList):
-                return True
-            else:
-                return False
-        else:
+        responseData = response.read().decode('utf-8')
+        if 'success' in responseData:
+            return True
+        elif 'fail' in responseData:
             return False
 
-#---------------Script---Start-----------------------------------------------------------
-GetIP()
-localtime=time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) 
-if CheckLoginStatus(url):
-    #Status is Login
-    if ip==GetLogIP():
-       #---IP is not changed
-       #print localtime+' Login,IP Unchanged'
-        exit('Log OK, IP OK')
+
+# ---------------Get Host IP-------------
+def GetHostIP():
+    try:
+        global hostIP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(('8.8.8.8', 80))
+        hostIP = s.getsockname()[0]
+    finally:
+        s.close()
+    if hostIP == '':
+        return False
     else:
-        AppendIP(ip)
-        if SendMailtoAll():
-            print localtime+' Login, Send Mail Success'
-            exit('Log Ok, Sent Mail')
-        else:
-            print localtime+' Login, Send Mail Failure'
-            exit('Log OK, Sent Fail')
-else:
-    if Login():
-     #ReLogin Ok
-        if ip==GetLogIP():
-            #IP is not Change
-            print localtime+' ReLogin,IP Unchanged'
-            exit('Reloged,IP OK')
-        else:
-            AppendIP(ip)
-            if SendMailtoAll():
-                print localtime+' ReLogin,Send Mail Success'
-                exit('Reloged,Sent Mail')
-            else:
-                print localtime+' ReLogin,Send Mail Failure'
-                exit('Reloged,Sent Fail')
+        return True
+
+
+# --------------Get IP Logs-------------------
+def GetLastIP():
+    ipAddr = '0.0.0.0'
+    filePath = os.path.split(os.path.realpath(__file__))[0] + '/ipList'
+    try:
+        with open(filePath, 'r', encoding='utf-8') as ipfile:
+            ipLogs = ipfile.readlines()
+            for line in reversed(ipLogs):
+                if (line != '\n') & (line[0] != '#'):
+                    ipAddr = line.replace('\n', '')
+                    break
+    except Exception:
+        localTime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print(localTime + ' :Can not read ipList File in: ' + filePath)
+        exit(0)
     else:
-        print localtime+' Relogin Failure'
-        exit('ReLogIn Error')
-        
-#---------------Test Code----------------------------------------------------------------
-'''print(CheckLoginStatus(url))
-print(Login())
-with open('accountList','r') as accountfile:
-    accountlines=accountfile.readlines()
-print(len(accountlines))
-if len(accountlines)!=0:
-    for i in range(len(accountlines)):
-        if SendLoginRequest(accountlines[i].split()[0],accountlines[i].split()[1],accountlines[i].split()[2]):
-            print(True)
-        print(i)
-        print accountlines[i].split()[0],accountlines[i].split()[1],accountlines[i].split()[2]
-        if i==len(accountlines)-1:#i=last accout but cant login
-            print('False1')
-else:
-   print('False2')
-print GetIP()
-print(ip)
-print mailMsgTemp.format(name='WT',ip=ip)
-print SendMailtoAll()'''
+        return ipAddr
+
+
+
+# -----------Append IP--------------------
+def AppendIP(ip):
+    filePath = os.path.split(os.path.realpath(__file__))[0] + '/ipList'
+    try:
+        with open(filePath, 'a', encoding='utf-8') as ipfile:
+            ipfile.write('\n' + ip)
+    except Exception:
+        localTime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print(localTime + ' :Can not write ipList File in: ' + filePath)
+        exit(0)
+    else:
+        return
+
+
+# ---------------Login---------------------------
+def Login():
+    filePath = os.path.split(os.path.realpath(__file__))[0] + '/accountList'
+    try:
+        with open(filePath, 'r', encoding='utf-8') as accountfile:
+            accountlines = accountfile.readlines()
+        if len(accountlines) != 0:
+            for i in range(len(accountlines)):
+                if SendLoginRequest(accountlines[i].split()[0], accountlines[i].split()[1], accountlines[i].split()[2]):
+                    return
+                if i == len(accountlines) - 1:
+                    # i = last accout but cant login
+                    raise Exception()
+        else:
+            raise Exception()
+    except IOError:
+        localTime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print(localTime + ' :Can not read accountList File in: ' + filePath)
+        exit(0)
+    except Exception:
+        localTime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print(localTime + ' :Can not login using account from: ' + filePath)
+        exit(0)
+    else:
+        return
+
+
+# ---------------Send Mail to all users-----------
+def SendMailtoAll():
+    userNum = 0
+    sendNum = 0
+    filePath = os.path.split(os.path.realpath(__file__))[0] + '/userList'
+    try:
+        with open(filePath, 'r', encoding='utf-8') as userfile:
+            userlines = userfile.readlines()
+            if len(userlines) != 0:
+                for line in userlines:
+                    if (line != '\n') & (line[0] != '#'):
+                        userNum = userNum + 1
+                        receiver = recipient(line.split()[0], line.split()[1])
+                        try:
+                            receiver.Send()
+                        except Exception:
+                            pass
+                        else:
+                            sendNum = sendNum + 1
+    except IOError:
+        localTime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+        print(localTime + ' :Can not read userList File in: ' + filePath)
+        exit(0)
+    else:
+        return sendNum, userNum
+
+# ---------------Script---Start-----------------------------------------------------------
+if __name__ == '__main__':
+    localtime = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime())
+    if CheckLoginStatus(url) is False:
+        Login()
+        print(localtime + ' :Relogin')
+
+    GetHostIP()
+    if (hostIP != GetLastIP()) & sendMail:
+        sendNum, userNum = SendMailtoAll()
+        print(localtime + ' :IP changed, send mails to ' + str(sendNum) + '/' +str(userNum) + ' of users')
+        AppendIP(hostIP)
+
+    exit(0)
