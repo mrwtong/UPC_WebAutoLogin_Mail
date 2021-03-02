@@ -1,4 +1,4 @@
-# AutoLogin_Mail for UPC Network Authentication System
+# AutoLogin_Mail for UPC Network Authentication
 # 中国石油大学(华东)校园网认证系统自助登陆以及IP地址自动报告
 ## 该脚本能够方便管理校内办公室主机、工作站及服务器
 此脚本针对UPC校园网认证系统！
@@ -16,7 +16,7 @@ log文件：运行记录默认不保存，只在终端输出，如有需要可�
 ## 2、不同认证系统的自定义方法
 （1）此脚本主要适用UPC锐捷web认证，不同认证系统需要修改全局变量中postHeader和postData的格式。  
 （2）不同认证系统登陆成功后的重定向网址不同，根据需要可修改CheckLoginStatus函数中的判别方法。  
-（3）邮件使用palin文本，可根据需要自行修改   
+（3）邮件使用plain文本，可根据需要自行修改   
 ## 3、部署方法
 使用python3运行此脚本    
 （1）linux：修改start.sh后（开机启动+加入crontab），直接将其添加到开机启动即可    
